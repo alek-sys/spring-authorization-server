@@ -24,6 +24,7 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
 import org.springframework.security.oauth2.core.OAuth2RefreshToken;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationAttributeNames;
@@ -33,6 +34,7 @@ import org.springframework.security.oauth2.server.authorization.client.Registere
 import org.springframework.security.oauth2.server.authorization.token.JwtAccessTokenOAuth2TokenIssuer;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenIssuer;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenRequest;
+import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenResponse;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2Tokens;
 import org.springframework.security.oauth2.server.authorization.token.OpaqueRefreshTokenOAuth2TokenIssuer;
 import org.springframework.util.Assert;
@@ -118,24 +120,25 @@ public class OAuth2RefreshTokenAuthenticationProvider implements AuthenticationP
 			scopes = authorizedScopes;
 		}
 
-		OAuth2TokenIssuer<OAuth2AccessToken> accessTokenIssuer = new JwtAccessTokenOAuth2TokenIssuer(this.jwtEncoder);
-		OAuth2TokenIssuer<OAuth2RefreshToken> refreshTokenOAuth2TokenIssuer = new OpaqueRefreshTokenOAuth2TokenIssuer();
-		OAuth2Authorization finalAuthorization = authorization;
+		OAuth2TokenIssuer<OAuth2AccessToken, Jwt> accessTokenIssuer = new JwtAccessTokenOAuth2TokenIssuer(this.jwtEncoder);
+		OAuth2TokenIssuer<OAuth2RefreshToken, String> refreshTokenOAuth2TokenIssuer = new OpaqueRefreshTokenOAuth2TokenIssuer();
 		OAuth2TokenRequest request = OAuth2TokenRequest.builder()
 				.registeredClient(registeredClient)
-				.resourceOwner(finalAuthorization::getPrincipalName)
+				.resourceOwner(authorization::getPrincipalName)
 				.scopes(scopes)
 				.build();
 
-		OAuth2AccessToken accessToken = accessTokenIssuer.issue(request);
+		OAuth2TokenResponse<OAuth2AccessToken, Jwt> tokenResponse = accessTokenIssuer.issue(request);
+		OAuth2AccessToken accessToken = tokenResponse.getToken();
 		OAuth2RefreshToken refreshToken = registeredClient.getTokenSettings().reuseRefreshTokens()
 			? authorization.getTokens().getRefreshToken()
-			: refreshTokenOAuth2TokenIssuer.issue(request);
+			: refreshTokenOAuth2TokenIssuer.issue(request).getToken();
 
 		authorization = OAuth2Authorization.from(authorization)
 				.tokens(OAuth2Tokens.from(authorization.getTokens()).accessToken(accessToken).refreshToken(refreshToken).build())
-				.attribute(OAuth2AuthorizationAttributeNames.ACCESS_TOKEN_ATTRIBUTES, accessToken)
+				.attribute(OAuth2AuthorizationAttributeNames.ACCESS_TOKEN_ATTRIBUTES, tokenResponse.getIdentity())
 				.build();
+
 		this.authorizationService.save(authorization);
 
 		return new OAuth2AccessTokenAuthenticationToken(

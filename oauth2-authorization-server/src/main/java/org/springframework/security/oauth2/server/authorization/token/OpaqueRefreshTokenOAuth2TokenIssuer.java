@@ -28,18 +28,19 @@ import org.springframework.util.Assert;
 /**
  * @author Alexey Nesterov
  */
-public class OpaqueRefreshTokenOAuth2TokenIssuer implements OAuth2TokenIssuer<OAuth2RefreshToken> {
+public class OpaqueRefreshTokenOAuth2TokenIssuer implements OAuth2TokenIssuer<OAuth2RefreshToken, String> {
 
 	private final StringKeyGenerator keyGenerator = new Base64StringKeyGenerator(Base64.getUrlEncoder().withoutPadding(), 96);
 
 	@Override
-	public OAuth2RefreshToken issue(OAuth2TokenRequest tokenRequest) {
+	public OAuth2TokenResponse<OAuth2RefreshToken, String> issue(OAuth2TokenRequest tokenRequest) {
 		Assert.notNull(tokenRequest.getRegisteredClient(), "registeredClient cannot be null");
 		Assert.notNull(tokenRequest.getResourceOwner(), "resourceOwner cannot be null");
 		Assert.notNull(tokenRequest.getScopes(), "scopes cannot be null");
 
 		Instant issuedAt = Instant.now();
 		Instant expiresAt = issuedAt.plus(Duration.ofMinutes(60));
-		return new OAuth2RefreshToken(this.keyGenerator.generateKey(), issuedAt, expiresAt);
+		String tokenValue = this.keyGenerator.generateKey();
+		return OAuth2TokenResponse.with(new OAuth2RefreshToken(tokenValue, issuedAt, expiresAt), tokenValue);
 	}
 }

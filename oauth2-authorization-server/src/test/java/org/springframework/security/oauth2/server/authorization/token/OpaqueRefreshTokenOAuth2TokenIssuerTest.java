@@ -40,7 +40,7 @@ public class OpaqueRefreshTokenOAuth2TokenIssuerTest {
 	private final RegisteredClient registeredClient = TestRegisteredClients.registeredClient().build();
 	private final TestingAuthenticationToken testResourceOwner = new TestingAuthenticationToken("test", "test");
 
-	private OAuth2TokenIssuer<OAuth2RefreshToken> tokenIssuer;
+	private OAuth2TokenIssuer<OAuth2RefreshToken, String> tokenIssuer;
 
 	@Before
 	public void setUp() {
@@ -78,7 +78,7 @@ public class OpaqueRefreshTokenOAuth2TokenIssuerTest {
 				.resourceOwner(this.testResourceOwner)
 				.build();
 
-		AbstractOAuth2Token token = this.tokenIssuer.issue(tokenRequest);
+		AbstractOAuth2Token token = this.tokenIssuer.issue(tokenRequest).getToken();
 		assertThat(token.getIssuedAt()).isAfter(this.now);
 		assertThat(token.getExpiresAt()).isAfter(token.getIssuedAt());
 	}
@@ -90,8 +90,8 @@ public class OpaqueRefreshTokenOAuth2TokenIssuerTest {
 				.resourceOwner(this.testResourceOwner)
 				.build();
 
-		AbstractOAuth2Token token1 = this.tokenIssuer.issue(tokenRequest);
-		AbstractOAuth2Token token2 = this.tokenIssuer.issue(tokenRequest);
+		AbstractOAuth2Token token1 = this.tokenIssuer.issue(tokenRequest).getToken();
+		AbstractOAuth2Token token2 = this.tokenIssuer.issue(tokenRequest).getToken();
 
 		assertThat(token1.getTokenValue()).isNotEqualTo(token2.getTokenValue());
 	}

@@ -16,12 +16,28 @@
 
 package org.springframework.security.oauth2.server.authorization.token;
 
-import org.springframework.security.oauth2.core.AbstractOAuth2Token;
-
 /**
  * @author Alexey Nesterov
  */
-public interface OAuth2TokenIssuer<TOKEN_TYPE extends AbstractOAuth2Token, TOKEN_IDENTITY_TYPE> {
+public class OAuth2TokenResponse<TOKEN_TYPE, TOKEN_IDENTITY_TYPE> {
 
-	OAuth2TokenResponse<TOKEN_TYPE, TOKEN_IDENTITY_TYPE> issue(OAuth2TokenRequest tokenRequest);
+	private final TOKEN_TYPE token;
+	private final TOKEN_IDENTITY_TYPE identity;
+
+	private OAuth2TokenResponse(TOKEN_TYPE token, TOKEN_IDENTITY_TYPE identity) {
+		this.token = token;
+		this.identity = identity;
+	}
+
+	public static <TOKEN_TYPE, TOKEN_IDENTITY_TYPE> OAuth2TokenResponse<TOKEN_TYPE, TOKEN_IDENTITY_TYPE> with(TOKEN_TYPE token, TOKEN_IDENTITY_TYPE tokenIdentity) {
+		return new OAuth2TokenResponse<>(token, tokenIdentity);
+	}
+
+	public TOKEN_TYPE getToken() {
+		return token;
+	}
+
+	public TOKEN_IDENTITY_TYPE getIdentity() {
+		return identity;
+	}
 }

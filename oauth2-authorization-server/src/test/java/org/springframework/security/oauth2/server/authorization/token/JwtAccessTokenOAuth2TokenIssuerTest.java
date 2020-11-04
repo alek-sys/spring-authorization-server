@@ -96,7 +96,7 @@ public class JwtAccessTokenOAuth2TokenIssuerTest {
 				.resourceOwner(this.testResourceOwner)
 				.build();
 
-		OAuth2AccessToken accessToken = this.tokenIssuer.issue(tokenRequest);
+		OAuth2AccessToken accessToken = this.tokenIssuer.issue(tokenRequest).getToken();
 		assertThat(accessToken.getIssuedAt()).isEqualTo(this.now);
 		assertThat(accessToken.getExpiresAt()).isAfter(this.now);
 	}
@@ -110,7 +110,7 @@ public class JwtAccessTokenOAuth2TokenIssuerTest {
 				.scopes(expectedScopes)
 				.build();
 
-		OAuth2AccessToken accessToken = this.tokenIssuer.issue(tokenRequest);
+		OAuth2AccessToken accessToken = this.tokenIssuer.issue(tokenRequest).getToken();
 		Jwt decodedJwt = decode(accessToken.getTokenValue());
 
 		JSONArray actualScopes = decodedJwt.getClaim("scope");
@@ -127,7 +127,7 @@ public class JwtAccessTokenOAuth2TokenIssuerTest {
 				.scopes(expectedScopes)
 				.build();
 
-		OAuth2AccessToken accessToken = this.tokenIssuer.issue(tokenRequest);
+		OAuth2AccessToken accessToken = this.tokenIssuer.issue(tokenRequest).getToken();
 		Jwt decodedJwt = decode(accessToken.getTokenValue());
 
 		assertThat(decodedJwt.getClaims())
@@ -151,7 +151,7 @@ public class JwtAccessTokenOAuth2TokenIssuerTest {
 			assertThat(request).isEqualTo(tokenRequest);
 		});
 
-		OAuth2AccessToken accessToken = this.tokenIssuer.issue(tokenRequest);
+		OAuth2AccessToken accessToken = this.tokenIssuer.issue(tokenRequest).getToken();
 		Jwt decodedJwt = decode(accessToken.getTokenValue());
 
 		assertThat(decodedJwt.getHeaders()).containsEntry("new-header", "header-value");
@@ -195,6 +195,21 @@ public class JwtAccessTokenOAuth2TokenIssuerTest {
 		}));
 
 		this.tokenIssuer.issue(tokenRequest);
+	}
+
+	@Test
+	public void issueWhenValidRequestThenReturnTokenIdentity() {
+		OAuth2TokenRequest tokenRequest = OAuth2TokenRequest.builder()
+				.registeredClient(this.registeredClient)
+				.resourceOwner(this.testResourceOwner)
+				.build();
+
+		Jwt jwt = this.tokenIssuer.issue(tokenRequest).getIdentity();
+		assertThat(jwt.getClaims())
+				.containsEntry("sub", this.testResourceOwner.getPrincipal())
+				.containsEntry("aud", Collections.singletonList(this.registeredClient.getClientId()))
+				.containsEntry("iat", this.now)
+				.containsEntry("nbf", this.now);
 	}
 
 	private Jwt decode(String tokenValue) {

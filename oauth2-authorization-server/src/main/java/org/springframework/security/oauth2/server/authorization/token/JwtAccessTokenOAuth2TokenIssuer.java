@@ -36,7 +36,7 @@ import org.springframework.util.Assert;
 /**
  * @author Alexey Nesterov
  */
-public class JwtAccessTokenOAuth2TokenIssuer implements OAuth2TokenIssuer<OAuth2AccessToken> {
+public class JwtAccessTokenOAuth2TokenIssuer implements OAuth2TokenIssuer<OAuth2AccessToken, Jwt> {
 
 	private final JwtEncoder jwtEncoder;
 	private final Clock clock;
@@ -64,7 +64,7 @@ public class JwtAccessTokenOAuth2TokenIssuer implements OAuth2TokenIssuer<OAuth2
 	}
 
 	@Override
-	public OAuth2AccessToken issue(@NonNull OAuth2TokenRequest tokenRequest) {
+	public OAuth2TokenResponse<OAuth2AccessToken, Jwt> issue(@NonNull OAuth2TokenRequest tokenRequest) {
 		Assert.notNull(tokenRequest.getResourceOwner(), "resourceOwner cannot be null");
 		Assert.notNull(tokenRequest.getRegisteredClient(), "registeredClient cannot be null");
 
@@ -88,7 +88,7 @@ public class JwtAccessTokenOAuth2TokenIssuer implements OAuth2TokenIssuer<OAuth2
 		this.validators.forEach(jwtOAuth2TokenValidator -> jwtOAuth2TokenValidator.validate(joseHeader, claimsSet, tokenRequest));
 
 		Jwt jwt = jwtEncoder.encode(joseHeaderBuilder.build(), jwtClaimsSetBuilder.build());
-		return new OAuth2AccessToken(OAuth2AccessToken.TokenType.BEARER, jwt.getTokenValue(), issuedAt, expiresAt, scopes);
+		return OAuth2TokenResponse.with(new OAuth2AccessToken(OAuth2AccessToken.TokenType.BEARER, jwt.getTokenValue(), issuedAt, expiresAt, scopes), jwt);
 	}
 
 	public void setCustomizer(JwtOAuth2TokenCustomizer customizer) {

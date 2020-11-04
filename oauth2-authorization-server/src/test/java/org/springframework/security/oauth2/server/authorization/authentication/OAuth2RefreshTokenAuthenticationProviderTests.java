@@ -56,6 +56,7 @@ import static org.mockito.Mockito.when;
  * @since 0.0.3
  */
 public class OAuth2RefreshTokenAuthenticationProviderTests {
+
 	private OAuth2AuthorizationService authorizationService;
 	private JwtEncoder jwtEncoder;
 	private OAuth2RefreshTokenAuthenticationProvider authenticationProvider;
@@ -309,5 +310,28 @@ public class OAuth2RefreshTokenAuthenticationProviderTests {
 				.extracting(ex -> ((OAuth2AuthenticationException) ex).getError())
 				.extracting("errorCode")
 				.isEqualTo(OAuth2ErrorCodes.INVALID_GRANT);
+	}
+
+	@Test
+	public void authenticateWhenRefreshTokenIssuedThenSetAccessTokenToAttributes() {
+		RegisteredClient registeredClient = TestRegisteredClients.registeredClient().build();
+		OAuth2Authorization authorization = TestOAuth2Authorizations.authorization(registeredClient).build();
+		when(this.authorizationService.findByToken(
+				eq(authorization.getTokens().getRefreshToken().getTokenValue()),
+				eq(TokenType.REFRESH_TOKEN)))
+				.thenReturn(authorization);
+
+		OAuth2ClientAuthenticationToken clientPrincipal = new OAuth2ClientAuthenticationToken(registeredClient);
+		OAuth2RefreshTokenAuthenticationToken authentication = new OAuth2RefreshTokenAuthenticationToken(
+				authorization.getTokens().getRefreshToken().getTokenValue(), clientPrincipal);
+
+		this.authenticationProvider.authenticate(authentication);
+
+		ArgumentCaptor<OAuth2Authorization> authorizationCaptor = ArgumentCaptor.forClass(OAuth2Authorization.class);
+		verify(this.authorizationService).save(authorizationCaptor.capture());
+		OAuth2Authorization updatedAuthorization = authorizationCaptor.getValue();
+
+		assertThat(updatedAuthorization.<Object>getAttribute(OAuth2AuthorizationAttributeNames.ACCESS_TOKEN_ATTRIBUTES))
+				.isInstanceOf(Jwt.class);
 	}
 }
